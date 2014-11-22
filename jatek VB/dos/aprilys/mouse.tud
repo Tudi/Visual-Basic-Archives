@@ -1,0 +1,397 @@
+#include <alloc.h>
+
+unsigned char M=0,Mnocolor=255;
+int Mx=0,My=0,Melx=0,Mely=0,Mxspeed,Myspeed;
+unsigned char far *Mface=NULL,far *Mback=NULL;
+unsigned char far *SCREEN=(char *)0xA0000000;
+
+void Minit();
+void Mgetcor();
+int Mgetx();
+int Mgety();
+char MRpressed();
+char MLpressed();
+char Mpressed();
+void MHrange(int,int);
+void MVrange(int,int);
+void Msensitivity(int,int);
+void Mset(int,int);
+void MOUSE(char);
+void Mputface(int,int,unsigned char far *);
+void Mputpic(unsigned char far *,int,int,unsigned char,unsigned char,unsigned char);
+void Mnputpic(unsigned char far *,int,int,unsigned char,unsigned char,unsigned char,unsigned char);
+void Mnputface(int x,int y,unsigned char far *source,unsigned char);
+void Msetface(unsigned char far *);
+void Mcenterface();
+void TMOUSE(char);
+void trans(int,int);
+
+void Mgetcor()
+ {
+	asm {
+	mov ax,3
+	int 33h
+	mov Mx,cx
+	mov My,dx
+	}
+ }
+
+void Minit()
+ {
+	unsigned char i,j;
+	asm {
+	xor ax,ax
+	int 33h
+	mov M,al
+	mov ax,0002h
+  int 33h 
+	}
+	if(M!=0)M=1;
+	if(M==1)
+	 {
+		MHrange(0,319);
+		MVrange(0,199);
+		Mset(160,100);
+		Mxspeed=1;
+		Myspeed=1;
+		Msensitivity(Mxspeed,Myspeed);
+		Mface=(unsigned char *)malloc(6);
+		*Mface=2;
+		*(Mface+1)=2;
+		for(i=1;i<=*(Mface+1)**Mface;i++)
+		 *(Mface+i+1)=9;
+		Mback=(unsigned char *)malloc(1000);
+		*Mback=2;
+		*(Mback+1)=2;
+		Mgetcor();
+		for(i=0;i<*(Mback+1);i++)
+		 for(j=1;j<=*(Mback);j++)
+		 *(Mback+i**(Mback+1)+j+2)=*(SCREEN+(My+i)*320+j+Mx);
+	 }
+ }
+
+int Mgetx()
+ {
+	int x;
+	asm {
+	mov ax,3
+	int 33h
+	mov x,cx
+	}
+	return(x);
+ }
+
+int Mgety()
+ {
+	int y;
+	asm {
+	mov ax,3
+	int 33h
+	mov y,dx
+	}
+	return(y);
+ }
+
+char Mpressed()
+ {
+	char b=0;
+	asm {
+	mov ax,3
+	int 33h
+	test bx,3
+	jz vege
+	mov b,1
+	}
+	vege:
+	return(b);
+ }
+
+char MRpressed()
+ {
+	char b=0;
+	asm {
+	mov ax,3
+	int 33h
+	test bx,1
+	jz vege
+	mov b,1
+	}
+	vege:
+	return(b);
+ }
+
+char MLpressed()
+ {
+	char b=0;
+	asm {
+	mov ax,3
+	int 33h
+	test bx,2
+	jz vege
+	mov b,1
+	}
+	vege:
+	return(b);
+ }
+
+void MHrange(int minx,int maxx)
+ {
+	asm {
+	mov cx,minx
+	mov dx,maxx
+	mov ax,7
+	int 33h
+	}
+ }
+
+void MVrange(int miny,int maxy)
+ {
+	asm {
+	mov cx,miny
+	mov dx,maxy
+	mov ax,8
+	int 33h
+	}
+ }
+
+void Msensitivity(int hm,int vm)
+ {
+	Mxspeed=hm;
+	Myspeed=vm;
+	asm {
+	mov ax,0x001a
+	mov bx,hm
+	mov cx,vm
+	int 33h
+	}
+ }
+
+void Mset(int nx,int ny)
+ {
+	asm {
+	mov dx,ny
+	mov cx,nx
+	mov ax,4
+	int 33h
+	}
+ }
+
+void Mputface(int x,int y,unsigned char far *source)
+ {
+	int x2=x,y2=y,bx=0,by=0,dx=*source,dy=*(source+1);
+	if(y<0)
+	 {
+		y2=0;
+		by=-y*(*source);
+		dy+=y;
+	 }
+	if(y+dy>200)dy=*(source+1)-(y+dy-200);
+	if(x<0)
+	 {
+		x2=0;
+		bx=-x;
+		dx+=x;
+	 }
+	if(x+dx>320)dx=*(source)-(x+dx-320);
+	if(dx==0||dy==0)return;
+	 Mputpic(source+bx+by+2,x2,y2,dx,dy,*source);
+ }
+
+void Mputpic(unsigned char far *data,int x,int y,unsigned char dx1,unsigned char dy,unsigned char sh)
+ {
+/*milyen hosszu igazabol a kep*/
+	unsigned char sh1=sh-dx1;
+	asm {
+	push ds
+	les di,SCREEN
+	add di,x
+	mov ax,y
+	mov bx,320
+	mul bx
+	add di,ax
+	xor dh,dh
+	xor bh,bh
+	mov bl,sh1
+	mov dl,dx1
+	mov ax,320
+	sub ax,dx
+	xor ch,ch
+	mov cl,dy
+	lds si,data
+	}
+ ujsor:
+	asm {
+	push cx
+	mov cl,dl
+	rep movsb
+	add di,ax
+	add si,bx
+	pop cx
+	loop ujsor
+	pop ds
+	}
+ }
+
+void Mnputface(int x,int y,unsigned char far *source,unsigned char noc)
+ {
+	int x2=x,y2=y,bx=0,by=0,dx=*source,dy=*(source+1);
+	if(y<0)
+	 {
+		y2=0;
+		by=-y*(*source);
+		dy+=y;
+	 }
+	if(y+dy>200)dy=*(source+1)-(y+dy-200);
+	if(x<0)
+	 {
+		x2=0;
+		bx=-x;
+		dx+=x;
+	 }
+	if(x+dx>320)dx=*(source)-(x+dx-320);
+	if(dx==0||dy==0)return;
+	 Mnputpic(source+bx+by+2,x2,y2,dx,dy-1,*source,noc);
+ }
+
+void Mnputpic(unsigned char far *data,int x,int y,unsigned char dx1,unsigned char dy,unsigned char sh,unsigned char noc)
+ {
+/*milyen hosszu igazabol a kep*/
+	unsigned char sh1=sh-dx1;
+	asm {
+	push ds
+	les di,SCREEN
+	add di,x
+	mov ax,y
+	mov bx,320
+	mul bx
+	add di,ax
+	xor dh,dh
+	xor bh,bh
+	mov bl,sh1
+	mov dl,dx1
+	mov ax,320
+	sub ax,dx
+	xor ch,ch
+	mov cl,dy
+	lds si,data
+	}
+ ujsor:
+	asm {
+	push cx
+	mov cl,dl
+	}
+ ciklus:
+	asm {
+	mov dh,ds:[si]
+	cmp dh,noc
+	je nopixel
+	mov es:[di],dh
+	}
+ nopixel:
+	asm {
+	inc si
+	inc di
+	loop ciklus
+	}
+	asm {
+	add di,ax
+	add si,bx
+	pop cx
+	loop ujsor
+	pop ds
+	}
+ }
+
+void Msetface(unsigned char far *source)
+ {
+	unsigned char j,t;
+	unsigned int i;
+	Mputface(Mx-Melx,My-Mely,Mback);
+	free(Mface);
+	free(Mback);
+	Mface=(unsigned char *)malloc(*source**(source+1));
+	*Mface=*source;
+	*(Mface+1)=*(source+1);
+	for(i=1;i<=*(Mface+1)**Mface;i++)
+	 *(Mface+i+1)=*(source+1+i);
+	Mback=(unsigned char *)malloc(*source**(source+1));
+	*Mback=*source;
+	*(Mback+1)=*(source+1);
+	for(i=0;i<*(Mback+1);i++)
+	 for(j=0;j<*(Mback);j++)
+		*(Mback+i**(Mback)+j+2)=*(SCREEN+(My+i)*320+j+Mx);
+ }
+
+void MOUSE(char force=0)
+ {
+	int Nx=Mx,Ny=My;
+	unsigned char i,j;
+	Mgetcor();
+	if(Nx==Mx && Ny==My && force==0)return;
+	if(Mface==NULL)return;
+	Mputface(Nx-Melx,Ny-Mely,Mback);
+	for(i=0;i<*(Mback+1);i++)
+	 for(j=0;j<*(Mback);j++)
+		*(Mback+i**(Mback)+j+2)=*(SCREEN+(My+i-Mely)*320+j+Mx-Melx);
+	Mnputface(Mx-Melx,My-Mely,Mface,Mnocolor);
+ }
+
+void Mcenterface()
+ {
+	int Nx=Mx,Ny=My;
+	int i,j;
+	Mgetcor();
+	if(Mface==NULL)return;
+	Mputface(Nx-Melx,Ny-Mely,Mback);
+	Melx=*Mface/2;
+	Mely=*(Mface+1)/2;
+	for(i=0;i<*(Mback+1);i++)
+	 for(j=0;j<*(Mback);j++)
+		*(Mback+i**(Mback)+j+2)=*(SCREEN+(My+i-Mely)*320+j+Mx-Melx);
+ }
+
+void TMOUSE(char force=0)
+ {
+	int Nx=Mx,Ny=My;
+	int i,j;
+	Mgetcor();
+	if(Nx==Mx && Ny==My && force==0)return;
+	if(Mface==NULL)return;
+	Mputface(Nx-Melx,Ny-Mely,Mback);
+	for(i=0;i<*(Mback+1);i++)
+	 for(j=0;j<*(Mback);j++)
+		*(Mback+i**(Mback)+j+2)=*(SCREEN+(My+i-Mely)*320+j+Mx-Melx);
+	for(i=0;i<*(Mface+1)-1;i++)
+	 for(j=0;j<*(Mface);j++)
+		if(*(Mface+i**Mface+j+2)!=Mnocolor)trans(Mx-Melx+j,My-Mely+i);
+ }
+
+void trans(int x,int y)
+ {
+	asm {
+	 cmp x,0
+	 jng vege
+	 cmp y,0
+	 jng vege
+	 cmp x,319
+	 jg vege
+	 cmp y,200
+	 jg vege
+	 les di,SCREEN
+	 mov ax,x
+	 mov dx,y
+	 mov bx,dx
+	 shl dx,8
+	 shl bx,6
+	 add dx,bx
+	 add di,dx
+	 add di,ax
+	 mov ah,127
+	 mov al,es:[di]
+	 cmp ah,al
+	 jna vege
+	 add al,ah
+	 mov es:[di],al
+	}
+ vege:
+ }

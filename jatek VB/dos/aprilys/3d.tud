@@ -1,0 +1,135 @@
+//#include <conio.h>
+#include <math.h>
+//#include <graph256.tud>
+//#include <dos.h>
+//#include <stdio.h>
+
+#define msin(fok) sin(fok*0.017453292)
+#define mcos(fok) cos(fok*0.017453292)
+
+#define Xrot1a(szog,tipus3d) Xrot(szog,(ponttipus3d*)(&tipus3d),1)
+#define Yrot1a(szog,tipus3d) Yrot(szog,(ponttipus3d *)(&tipus3d),1)
+#define Zrot1a(szog,tipus3d) Zrot(szog,(ponttipus3d *)(&tipus3d),1)
+#define Xrot2a(szog,tipus3d) Xrot(szog,(ponttipus3d *)(&tipus3d),2)
+#define Yrot2a(szog,tipus3d) Yrot(szog,(ponttipus3d *)(&tipus3d),2)
+#define Zrot2a(szog,tipus3d) Zrot(szog,(ponttipus3d *)(&tipus3d),2)
+#define Xrot3a(szog,tipus3d) Xrot(szog,(ponttipus3d *)(&tipus3d),3)
+#define Yrot3a(szog,tipus3d) Yrot(szog,(ponttipus3d *)(&tipus3d),3)
+#define Zrot3a(szog,tipus3d) Zrot(szog,(ponttipus3d *)(&tipus3d),3)
+#define Xrot4a(szog,tipus3d) Xrot(szog,(ponttipus3d *)(&tipus3d),4)
+#define Yrot4a(szog,tipus3d) Yrot(szog,(ponttipus3d *)(&tipus3d),4)
+#define Zrot4a(szog,tipus3d) Zrot(szog,(ponttipus3d *)(&tipus3d),4)
+
+#define poly1a(tipus3d,color) poly((ponttipus3d *)(&tipus3d),1,color)
+#define poly2a(tipus3d,color) poly((ponttipus3d *)(&tipus3d),2,color)
+#define poly3a(tipus3d,color) poly((ponttipus3d *)(&tipus3d),3,color)
+#define poly4a(tipus3d,color) poly((ponttipus3d *)(&tipus3d),4,color)
+
+#define adr(valtozo) (ponttipus3d*)(&valtozo)
+
+#define Zzoom 0.5
+
+typedef struct{int x,y,z;}pontipus3d;
+typedef struct{pontipus3d p[1];}ponttipus3d;
+typedef struct{pontipus3d p[2];}vonaltipus3d;
+typedef struct{pontipus3d p[3];}haromszogtipus3d;
+typedef struct{pontipus3d p[4];}negyszogtipus3d;
+
+void poly(ponttipus3d *,char,char);
+void szpoly(float,float,float,ponttipus3d *,char,char);
+void Xrot(float,ponttipus3d *,char);
+void Yrot(float,ponttipus3d *,char);
+void Zrot(float,ponttipus3d *,char);
+void getkor(ponttipus3d *,ponttipus3d *,float,float,float,char);
+
+float ZOOM=1;
+int KX=320,KY=240;
+
+ void getkor(ponttipus3d * be,ponttipus3d * ki,float Xsz,float Ysz,float Zsz,char nrp)
+	{
+	 int i;
+	 if (be!=ki)
+		for(i=0;i<nrp;i++)
+		 {
+			ki->p[i].x=be->p[i].x;
+			ki->p[i].y=be->p[i].y;
+			ki->p[i].z=be->p[i].z;
+		 }
+	 Xrot(Xsz,ki,nrp);
+	 Yrot(Ysz,ki,nrp);
+	 Zrot(Zsz,ki,nrp);
+	}
+
+ void szpoly(float Xsz,float Ysz,float Zsz,ponttipus3d *honnan,char nrp,char color)
+	{
+	 int i;
+   negyszogtipus3d potnegyszog;
+	 for(i=0;i<nrp;i++)
+		{
+		 potnegyszog.p[i].x=honnan->p[i].x;
+		 potnegyszog.p[i].y=honnan->p[i].y;
+		 potnegyszog.p[i].z=honnan->p[i].z;
+		}
+	 Xrot(Xsz,(ponttipus3d *)&potnegyszog,nrp);
+	 Yrot(Ysz,(ponttipus3d *)&potnegyszog,nrp);
+	 Zrot(Zsz,(ponttipus3d *)&potnegyszog,nrp);
+	 if(nrp==1)putpixel(KX+potnegyszog.p[0].x,KY+potnegyszog.p[0].y,color);
+		else
+		 {
+			setcolor(color);
+			for(i=0;i<nrp-1;i++)
+			 line(KX+potnegyszog.p[i].x*ZOOM,KY+potnegyszog.p[i].y*ZOOM,KX+potnegyszog.p[i+1].x*ZOOM,KY+potnegyszog.p[i+1].y*ZOOM);
+			line(KX+potnegyszog.p[0].x*ZOOM,KY+potnegyszog.p[0].y*ZOOM,KX+potnegyszog.p[nrp-1].x*ZOOM,KY+potnegyszog.p[nrp-1].y*ZOOM);
+    }
+	}
+
+ void poly(ponttipus3d *H,char nrp,char color)
+	{
+	 if(nrp==1)putpixel(KX+H->p[0].x*ZOOM,KY+H->p[0].y*ZOOM,color);
+		else
+		 {
+			setcolor(color);
+			for(int i=0;i<nrp-1;i++)
+			 line(KX+H->p[i].x*ZOOM,KY+H->p[i].y*ZOOM,KX+H->p[i+1].x*ZOOM,KY+H->p[i+1].y*ZOOM);
+			line(KX+H->p[0].x*ZOOM,KY+H->p[0].y*ZOOM,KX+H->p[nrp-1].x*ZOOM,KY+H->p[nrp-1].y*ZOOM);
+		 }
+	}
+
+ void Yrot(float szog,ponttipus3d *H,char pnr)
+	{
+	 float x2,z2;
+	 for(int i=0;i<pnr;i++)
+		{
+		 x2=H->p[i].x*mcos(szog)+H->p[i].z*msin(szog);
+		 z2=H->p[i].z*mcos(szog)-H->p[i].x*msin(szog);
+		 H->p[i].x=x2;
+		 H->p[i].z=z2;
+		}
+	}
+
+ void Zrot(float szog,ponttipus3d *H,char pnr)
+	{
+	 float x2,y2;
+	 for(int i=0;i<pnr;i++)
+		{
+		 x2=H->p[i].x*mcos(szog)+H->p[i].y*msin(szog);
+		 y2=H->p[i].y*mcos(szog)-H->p[i].x*msin(szog);
+		 H->p[i].x=x2;
+		 H->p[i].y=y2;
+		}
+	}
+
+ void Xrot(float szog,ponttipus3d *H,char pnr)
+	{
+	 float z2,y2;
+	 for(int i=0;i<pnr;i++)
+		{
+		 H->p[i].y=H->p[i].y*mcos(szog)+H->p[i].z*msin(szog);
+		 H->p[i].z=H->p[i].z*mcos(szog)-H->p[i].y*msin(szog);
+/*		 y2=H->p[i].y*mcos(szog)+H->p[i].z*msin(szog);
+		 z2=H->p[i].z*mcos(szog)-H->p[i].y*msin(szog);
+		 H->p[i].y=y2;
+		 H->p[i].z=z2;*/
+		}
+	}
+
